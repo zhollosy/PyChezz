@@ -10,7 +10,7 @@ from time import gmtime, strftime
 from PyQt4 import QtGui, QtCore, QtSvg, uic
 
 scriptPath = os.path.dirname(__file__)
-uifile = scriptPath + "/pyChezzMinUI.ui"
+uifile = scriptPath + "/ui/pyChezzMinUI.ui"
 form_class = uic.loadUiType(uifile)[0]
 
 
