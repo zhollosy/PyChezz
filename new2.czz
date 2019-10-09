@@ -1,0 +1,145 @@
+{
+    "figPlaces": {
+        "darkBishop1": [
+            89.5,
+            63.0
+        ],
+        "darkBishop2": [
+            177.5,
+            64.0
+        ],
+        "darkKing": [
+            146.5,
+            64.0
+        ],
+        "darkKnight1": [
+            56.5,
+            64.0
+        ],
+        "darkKnight2": [
+            207.5,
+            64.0
+        ],
+        "darkPawn1": [
+            25.5,
+            95.0
+        ],
+        "darkPawn2": [
+            56.5,
+            95.0
+        ],
+        "darkPawn3": [
+            81.5,
+            150.0
+        ],
+        "darkPawn4": [
+            116.5,
+            95.0
+        ],
+        "darkPawn5": [
+            146.5,
+            95.0
+        ],
+        "darkPawn6": [
+            177.5,
+            95.0
+        ],
+        "darkPawn7": [
+            207.5,
+            95.0
+        ],
+        "darkPawn8": [
+            237.5,
+            95.0
+        ],
+        "darkQueen": [
+            116.5,
+            64.0
+        ],
+        "darkRook1": [
+            25.5,
+            64.0
+        ],
+        "darkRook2": [
+            237.5,
+            64.0
+        ],
+        "lightBishop1": [
+            86.5,
+            276.0
+        ],
+        "lightBishop2": [
+            177.5,
+            276.0
+        ],
+        "lightKing": [
+            146.5,
+            276.0
+        ],
+        "lightKnight1": [
+            56.5,
+            276.0
+        ],
+        "lightKnight2": [
+            207.5,
+            276.0
+        ],
+        "lightPawn1": [
+            25.5,
+            246.0
+        ],
+        "lightPawn2": [
+            56.5,
+            246.0
+        ],
+        "lightPawn3": [
+            86.5,
+            246.0
+        ],
+        "lightPawn4": [
+            116.50000000000004,
+            184.99999999999997
+        ],
+        "lightPawn5": [
+            146.5,
+            246.0
+        ],
+        "lightPawn6": [
+            177.5,
+            246.0
+        ],
+        "lightPawn7": [
+            207.5,
+            246.0
+        ],
+        "lightPawn8": [
+            237.5,
+            246.0
+        ],
+        "lightQueen": [
+            116.5,
+            276.0
+        ],
+        "lightRook1": [
+            25.5,
+            276.0
+        ],
+        "lightRook2": [
+            237.5,
+            276.0
+        ]
+    },
+    "fileDataType": [
+        "pyChezzMin",
+        "v0.1.46",
+        "?????@gmail.com"
+    ],
+    "gameStarted": true,
+    "opponentName": "OPPONENT",
+    "users": {
+        "OPPONENT": "dark",
+        "zola": "light"
+    },
+    "whoAmI": "zola",
+    "whoIsNext": "OPPONENT"
+}
