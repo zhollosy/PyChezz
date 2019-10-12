@@ -8,6 +8,7 @@ import json
 import getpass
 from time import gmtime, strftime
 from PyQt4 import QtGui, QtCore, QtSvg, uic
+from PyQt4.QtCore import QPropertyAnimation
 
 scriptPath = os.path.dirname(__file__)
 uifile = scriptPath + "/ui/pyChezzMinUI.ui"
@@ -302,7 +303,18 @@ class pyChezzWin(QtGui.QWidget, form_class):
         # whois next !!
         print 'Game Started!!!'
 
+    def spinRotateIcon(self):
+        center = self.icons["rotateIcon"].boundingRect().center()
+        self.icons["rotateIcon"].setTransformOriginPoint(center)
+        self.anim_rotateIcon = QPropertyAnimation(self.icons["rotateIcon"], "rotation")
+        self.anim_rotateIcon.setDuration(300)
+        self.anim_rotateIcon.setStartValue(0)
+        self.anim_rotateIcon.setEndValue(360)
+        self.anim_rotateIcon.start()
+        # self.icons["rotateIcon"].setRotation(0)
+
     def rotateBoard(self):
+        self.spinRotateIcon()
         boardRect = self.interactiveBoardView.frameRect()
         goIconRect = self.icons["goIcon"].boundingRect()
 
@@ -423,10 +435,14 @@ class pyChezzWin(QtGui.QWidget, form_class):
         iconRect = self.icons["goIcon"].boundingRect()
         self.icons["goIcon"].setPos(QtCore.QPointF(limitRect.width()/2 - iconRect.width()/2, limitRect.height()/2+60))
 
-    def mousePressEvent(self, QMouseEvent):
-        posGlobal = self.mapToGlobal(QMouseEvent.pos())
+    def getItemAtMousePos_byMEvent(self, e):
+        posGlobal = self.mapToGlobal(e.pos())
         posLocal = self.interactiveBoardView.mapFromGlobal(posGlobal)
         item = self.interactiveBoardView.itemAt(posLocal)
+        return item
+
+    def mousePressEvent(self, QMouseEvent):
+        item = self.getItemAtMousePos_byMEvent(QMouseEvent)
         if item is not None:
             if str(item.objectName()).find('rotateIcon') == 0:
                 self.rotateBoard()
