@@ -35,6 +35,8 @@ class Bunch(object):
 class myGraphicsSvgItem(QtSvg.QGraphicsSvgItem):
     def __init__(self, parent=None, limitRect=None, cursorShape=QtCore.Qt.OpenHandCursor):
         QtSvg.QGraphicsSvgItem.__init__(self, parent)
+        self.center = self.boundingRect().center()
+        self.setTransformOriginPoint(self.center)
         if cursorShape:
             self.cursorShape = cursorShape
         if limitRect:
@@ -125,13 +127,11 @@ class pyChezzWin(QtGui.QWidget, form_class):
             self.myFigColor = 'light'
             # TODO: place common data-variables into the gameData dict! Replace references in the code!
             # self.gameStarted = False
-            self.opponentName = 'OPPONENT'
             self.gameData = {}
+            self.opponentName = 'OPPONENT'
             self.setWhoAmI('')
-            self.setOpponentName('OPPONENT')
-            self.setGameStarted(False)
+            self.isGameStarted = False
             self.gameData['users'] = {'OPPONENT': 'dark'}
-
 
     def setWhoAmI(self, name=None):
         self.gameData['whoAmI'] = name
@@ -140,17 +140,21 @@ class pyChezzWin(QtGui.QWidget, form_class):
     def getWhoAmI(self):
         return self.gameData['whoAmI']
 
-    def setOpponentName(self, name=None):
-        self.gameData['opponentName'] = name
-
-    def getOpponentName(self):
+    @property
+    def opponentName(self):
         return self.gameData['opponentName']
 
-    def setGameStarted(self, state=True):
-        self.gameData['gameStarted'] = state
+    @opponentName.setter
+    def opponentName(self, name):
+        self.gameData['opponentName'] = name
 
-    def getGameStarted(self):
+    @property
+    def isGameStarted(self):
         return self.gameData['gameStarted']
+
+    @isGameStarted.setter
+    def isGameStarted(self, state):
+        self.gameData['gameStarted'] = state
 
     def figureInfo(self, name='', startField=''):
         """ Store parameters of a chess figure """
@@ -165,29 +169,12 @@ class pyChezzWin(QtGui.QWidget, form_class):
         infDict['graphicsItem'] = QtSvg.QGraphicsSvgItem()
         return infDict
 
-    def initOnFirstShow(self, null):
-        if self.firstShow:
-            self.setFixedSize(self.size())
-            self.frmIndicatorYOU.hide()
-            self.initializeBoard()
-            self.alignTable(self)
-            self.drawFigures()
-            self.drawIcons()
-            self.baseViewRect = self.interactiveBoardView.geometry()
-            self.collectSnapPoints()
-            self.enableFigures(self.darkFigures, state=False)
-            self.enableFigures(self.lightFigures, state=False)
-            self.interactiveBoardView.setCursor(QtCore.Qt.OpenHandCursor)
-            self.firstShow = False
-            print "Shown!!!"
-            # print "view + scene ---> ", self.interactiveBoardView.rect(), self.interactiveBoardView.sceneRect()
-
     def btnOpen_Clicked(self):
         self.openDataFile()
 
     def btnSave_Clicked(self):
         self.saveNewDataFile()
-        self.setGameStarted()
+        self.isGameStarted = True
 
     def valueHandlerSlider(self, value):
         # FIXME: users data recognition must be fixed !!!!
@@ -244,7 +231,7 @@ class pyChezzWin(QtGui.QWidget, form_class):
             self.btnOpen.setText(file_info.fileName())
             self.initGame()
             self.loadChezzMinData()
-            self.setGameStarted()
+            self.isGameStarted = True
             return True
         else:
             return False
@@ -259,6 +246,24 @@ class pyChezzWin(QtGui.QWidget, form_class):
             self.interactiveBoardView.setMatrix(xForm)
 
         # self.interactiveBoardView.fitInView(QtCore.QRectF(0, 0, targetRect.width(), targetRect.height()))
+
+    def initOnFirstShow(self, null):
+        if self.firstShow:
+            self.setFixedSize(self.size())
+            self.frmIndicatorYOU.hide()
+            self.initializeBoard()
+            self.alignTable(self)
+            self.drawFigures()
+            self.drawIcons()
+            self.baseViewRect = self.interactiveBoardView.geometry()
+            self.collectSnapPoints()
+            self.enableFigures(self.darkFigures, state=False)
+            self.enableFigures(self.lightFigures, state=False)
+            self.interactiveBoardView.setCursor(QtCore.Qt.OpenHandCursor)
+            self.firstShow = False
+            print "Shown!!!"
+            # print "view + scene ---> ", self.interactiveBoardView.rect(), self.interactiveBoardView.sceneRect()
+            self.setAnimations()
 
     def initializeBoard(self):
         self.interactiveBoardView.setRenderHint(QtGui.QPainter.Antialiasing)
@@ -293,7 +298,7 @@ class pyChezzWin(QtGui.QWidget, form_class):
             self.initGame()
 
     def initGame(self, state=True):
-        self.setGameStarted(state)
+        self.isGameStarted = state
         self.icons['rotateIcon'].setVisible(False)
         self.icons['goIcon'].setVisible(False)
         self.enableFigures(self.darkFigures)
@@ -303,23 +308,29 @@ class pyChezzWin(QtGui.QWidget, form_class):
         # whois next !!
         print 'Game Started!!!'
 
-    def spinRotateIcon(self):
-        center = self.icons["rotateIcon"].boundingRect().center()
-        self.icons["rotateIcon"].setTransformOriginPoint(center)
+    def setAnimations(self):
         self.anim_rotateIcon = QPropertyAnimation(self.icons["rotateIcon"], "rotation")
         self.anim_rotateIcon.setDuration(300)
         self.anim_rotateIcon.setStartValue(0)
         self.anim_rotateIcon.setEndValue(360)
-        self.anim_rotateIcon.start()
-        # self.icons["rotateIcon"].setRotation(0)
+        # self.anim_rotateBoard = QPropertyAnimation(self.interactiveBoardView, "rotate")
+        # self.anim_rotateBoard.setDuration(300)
+        # self.anim_rotateBoard.setStartValue(0)
+        # self.anim_rotateBoard.setEndValue(180)
+        # self.anim_unRotateBoard = QPropertyAnimation(self.interactiveBoardView, "rotate")
+        # self.anim_unRotateBoard.setDuration(300)
+        # self.anim_unRotateBoard.setStartValue(180)
+        # self.anim_unRotateBoard.setEndValue(0)
+
 
     def rotateBoard(self):
-        self.spinRotateIcon()
+        self.anim_rotateIcon.start()
         boardRect = self.interactiveBoardView.frameRect()
         goIconRect = self.icons["goIcon"].boundingRect()
 
         if self.myFigColor.find('light') == 0:
             self.interactiveBoardView.rotate(180)
+            # self.anim_rotateBoard.start()
 
             pos = QtCore.QPointF(boardRect.width()/2 + goIconRect.width()/2, boardRect.height()/2 - 60)
             self.icons["goIcon"].setPos(pos)
@@ -540,7 +551,7 @@ class pyChezzWin(QtGui.QWidget, form_class):
                     # self.setGameStarted()
 
                     # turnIndex = ('ME', 'OPPONENT').index(json_data['whoIsNext'])
-                    turnIndex = (self.getWhoAmI(), self.getOpponentName()).index(json_data['whoIsNext'])
+                    turnIndex = (self.getWhoAmI(), self.opponentName).index(json_data['whoIsNext'])
                     # self.verticalSlider.setValue(turnIndex)
 
                     for key, value in json_data['figPlaces'].iteritems():
