@@ -61,10 +61,24 @@ class myGraphicsSvgItem(QtSvg.QGraphicsSvgItem):
         return QtGui.QGraphicsItem.itemChange(self, change, value)
 
 
+class ChessFigure(object):
+    def __init__(self, name=None, startField=None):
+        super(ChessFigure, self).__init__()
+
+        self.name = name
+        self.isLight = False
+        self.isDark = False
+        self.imageFile = ''
+        self.startField = startField
+        self.currentField = ''
+        self.currentPos = QtCore.QPointF()
+        self.graphicsItem = QtSvg.QGraphicsSvgItem()
+
+
 class pyChezzWin(QtGui.QWidget, form_class):
     """ GUI class for chess using minimal number of widgets, no AI, on intuitive surface """
     __widgetInst__ = None
-    __build__ = 056
+    __build__ = 56
     def __init__(self, app = None):
         if not self.__widgetInst__:
             __widgetInst__ = app
@@ -81,38 +95,38 @@ class pyChezzWin(QtGui.QWidget, form_class):
             self.snapPoints = []
             self.icons = {}
             self.figures = {}
-            self.darkFigures = {"darkKing": self.figureInfo(name='darkKing', startField='E8'),
-                                "darkQueen": self.figureInfo(name='darkQueen', startField='D8'),
-                                "darkBishop1": self.figureInfo(name='darkBishop1', startField='C8'),
-                                "darkBishop2": self.figureInfo(name='darkBishop2', startField='F8'),
-                                "darkKnight1": self.figureInfo(name='darkKnight1', startField='B8'),
-                                "darkKnight2": self.figureInfo(name='darkKnight2', startField='G8'),
-                                "darkRook1": self.figureInfo(name='darkRook1', startField='A8'),
-                                "darkRook2": self.figureInfo(name='darkRook2', startField='H8'),
-                                "darkPawn1": self.figureInfo(name='darkPawn1', startField='A7'),
-                                "darkPawn2": self.figureInfo(name='darkPawn2', startField='B7'),
-                                "darkPawn3": self.figureInfo(name='darkPawn3', startField='C7'),
-                                "darkPawn4": self.figureInfo(name='darkPawn4', startField='D7'),
-                                "darkPawn5": self.figureInfo(name='darkPawn5', startField='E7'),
-                                "darkPawn6": self.figureInfo(name='darkPawn6', startField='F7'),
-                                "darkPawn7": self.figureInfo(name='darkPawn7', startField='G7'),
-                                "darkPawn8": self.figureInfo(name='darkPawn8', startField='H7')}
-            self.lightFigures = {"lightKing": self.figureInfo(name='lightKing', startField='E1'),
-                                 "lightQueen": self.figureInfo(name='lightQueen', startField='D1'),
-                                 "lightBishop1": self.figureInfo(name='lightBishop1', startField='C1'),
-                                 "lightBishop2": self.figureInfo(name='lightBishop2', startField='F1'),
-                                 "lightKnight1": self.figureInfo(name='lightKnight1', startField='B1'),
-                                 "lightKnight2": self.figureInfo(name='lightKnight2', startField='G1'),
-                                 "lightRook1": self.figureInfo(name='lightRook1', startField='A1'),
-                                 "lightRook2": self.figureInfo(name='lightRook2', startField='H1'),
-                                 "lightPawn1": self.figureInfo(name='lightPawn1', startField='A2'),
-                                 "lightPawn2": self.figureInfo(name='lightPawn2', startField='B2'),
-                                 "lightPawn3": self.figureInfo(name='lightPawn3', startField='C2'),
-                                 "lightPawn4": self.figureInfo(name='lightPawn4', startField='D2'),
-                                 "lightPawn5": self.figureInfo(name='lightPawn5', startField='E2'),
-                                 "lightPawn6": self.figureInfo(name='lightPawn6', startField='F2'),
-                                 "lightPawn7": self.figureInfo(name='lightPawn7', startField='G2'),
-                                 "lightPawn8": self.figureInfo(name='lightPawn8', startField='H2')}
+            self.darkFigures = {"darkKing": ChessFigure(name='darkKing', startField='E8'),
+                                "darkQueen": ChessFigure(name='darkQueen', startField='D8'),
+                                "darkBishop1": ChessFigure(name='darkBishop1', startField='C8'),
+                                "darkBishop2": ChessFigure(name='darkBishop2', startField='F8'),
+                                "darkKnight1": ChessFigure(name='darkKnight1', startField='B8'),
+                                "darkKnight2": ChessFigure(name='darkKnight2', startField='G8'),
+                                "darkRook1": ChessFigure(name='darkRook1', startField='A8'),
+                                "darkRook2": ChessFigure(name='darkRook2', startField='H8'),
+                                "darkPawn1": ChessFigure(name='darkPawn1', startField='A7'),
+                                "darkPawn2": ChessFigure(name='darkPawn2', startField='B7'),
+                                "darkPawn3": ChessFigure(name='darkPawn3', startField='C7'),
+                                "darkPawn4": ChessFigure(name='darkPawn4', startField='D7'),
+                                "darkPawn5": ChessFigure(name='darkPawn5', startField='E7'),
+                                "darkPawn6": ChessFigure(name='darkPawn6', startField='F7'),
+                                "darkPawn7": ChessFigure(name='darkPawn7', startField='G7'),
+                                "darkPawn8": ChessFigure(name='darkPawn8', startField='H7')}
+            self.lightFigures = {"lightKing": ChessFigure(name='lightKing', startField='E1'),
+                                 "lightQueen": ChessFigure(name='lightQueen', startField='D1'),
+                                 "lightBishop1": ChessFigure(name='lightBishop1', startField='C1'),
+                                 "lightBishop2": ChessFigure(name='lightBishop2', startField='F1'),
+                                 "lightKnight1": ChessFigure(name='lightKnight1', startField='B1'),
+                                 "lightKnight2": ChessFigure(name='lightKnight2', startField='G1'),
+                                 "lightRook1": ChessFigure(name='lightRook1', startField='A1'),
+                                 "lightRook2": ChessFigure(name='lightRook2', startField='H1'),
+                                 "lightPawn1": ChessFigure(name='lightPawn1', startField='A2'),
+                                 "lightPawn2": ChessFigure(name='lightPawn2', startField='B2'),
+                                 "lightPawn3": ChessFigure(name='lightPawn3', startField='C2'),
+                                 "lightPawn4": ChessFigure(name='lightPawn4', startField='D2'),
+                                 "lightPawn5": ChessFigure(name='lightPawn5', startField='E2'),
+                                 "lightPawn6": ChessFigure(name='lightPawn6', startField='F2'),
+                                 "lightPawn7": ChessFigure(name='lightPawn7', startField='G2'),
+                                 "lightPawn8": ChessFigure(name='lightPawn8', startField='H2')}
 
             # Connections
             QtCore.QObject.connect(self.verticalSlider, QtCore.SIGNAL("valueChanged(int)"), self.valueHandlerSlider)
@@ -129,16 +143,18 @@ class pyChezzWin(QtGui.QWidget, form_class):
             # self.gameStarted = False
             self.gameData = {}
             self.opponentName = 'OPPONENT'
-            self.setWhoAmI('')
+            self.whoAmI = ''
             self.isGameStarted = False
             self.gameData['users'] = {'OPPONENT': 'dark'}
 
-    def setWhoAmI(self, name=None):
+    @property
+    def whoAmI(self):
+        return self.gameData['whoAmI']
+
+    @whoAmI.setter
+    def whoAmI(self, name=None):
         self.gameData['whoAmI'] = name
         print "I\'am: ", name
-
-    def getWhoAmI(self):
-        return self.gameData['whoAmI']
 
     @property
     def opponentName(self):
@@ -277,8 +293,8 @@ class pyChezzWin(QtGui.QWidget, form_class):
         self.verticalSlider.setEnabled(False)
         self.pebleOppLight.setVisible(False)
         self.pebleMyDark.setVisible(False)
-        self.setWhoAmI(getpass.getuser())
-        self.gameData['users'][self.getWhoAmI()] = 'light'
+        self.whoAmI = getpass.getuser()
+        self.gameData['users'][self.whoAmI] = 'light'
         print 'Users: ', self.gameData['users']
 
         # fit sceneRect
@@ -421,11 +437,11 @@ class pyChezzWin(QtGui.QWidget, form_class):
 
         # place figures to initial pos
         for fig, figInf in self.darkFigures.iteritems():
-            self.moveFigureToField(fig, figInf['startField'])
-            figInf['currentField'] = figInf['startField']
+            self.moveFigureToField(fig, figInf.startField)
+            figInf.currentField = figInf.startField
         for fig, figInf in self.lightFigures.iteritems():
-            self.moveFigureToField(fig, figInf['startField'])
-            figInf['currentField'] = figInf['startField']
+            self.moveFigureToField(fig, figInf.startField)
+            figInf.currentField = figInf.startField
             # print "%s - %s" % (fig, figInf['startField'])
 
     def drawIcons(self):
@@ -514,7 +530,7 @@ class pyChezzWin(QtGui.QWidget, form_class):
 
             time = strftime("%Y-%m-%d %H:%M:%S", gmtime())
 
-            self.gameData['fileDataType'] = ('pyChezzMin', 'v0.1.%s' % self.__build__, '?????@gmail.com')
+            self.gameData['fileDataType'] = ('pyChezzMin', 'v0.1.{}'.format(self.__build__), 'zhollosy@gmail.com')
             self.gameData['gameStarted'] = time if 'gameStarted' not in self.gameData else self.gameData['gameStarted']
             self.gameData['figPlaces'] = figPlaces
             self.gameData['whoIsNext'] = (self.gameData['whoAmI'], self.gameData['opponentName'])[self.verticalSlider.value()]
@@ -541,9 +557,9 @@ class pyChezzWin(QtGui.QWidget, form_class):
                 print "Cannot read data file!"
             else:
                 # loaded and check if the user is part of the game
-                if self.getWhoAmI() in json_data['users'].keys():
+                if self.whoAmI in json_data['users'].keys():
                     self.gameData = json_data
-                    mySavedColor = [col for per, col in json_data['users'].iteritems() if per == self.getWhoAmI()][0]
+                    mySavedColor = [col for per, col in json_data['users'].iteritems() if per == self.whoAmI][0]
                     if mySavedColor != self.myFigColor: # flip the board if necessary
                         self.rotateBoard()
                         print 'rotated on load'
@@ -551,7 +567,7 @@ class pyChezzWin(QtGui.QWidget, form_class):
                     # self.setGameStarted()
 
                     # turnIndex = ('ME', 'OPPONENT').index(json_data['whoIsNext'])
-                    turnIndex = (self.getWhoAmI(), self.opponentName).index(json_data['whoIsNext'])
+                    turnIndex = (self.whoAmI, self.opponentName).index(json_data['whoIsNext'])
                     # self.verticalSlider.setValue(turnIndex)
 
                     for key, value in json_data['figPlaces'].iteritems():
