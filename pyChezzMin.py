@@ -33,21 +33,31 @@ class Bunch(object):
 
 # Snapping - http://www.walletfox.com/course/qgraphicsitemsnaptogrid.php
 class myGraphicsSvgItem(QtSvg.QGraphicsSvgItem):
-    def __init__(self, parent=None, limitRect=None, cursorShape=QtCore.Qt.OpenHandCursor):
+    def __init__(self,
+                 parent=None,
+                 limitRect=QtCore.QRectF(0,0,1000,1000),
+                 cursorShape=QtCore.Qt.OpenHandCursor,
+                 *args, **kwargs):
         QtSvg.QGraphicsSvgItem.__init__(self, parent)
         self.center = self.boundingRect().center()
+        self.cursorShape = cursorShape
+        self.limitRect = QtCore.QRectF(limitRect)
         self.setTransformOriginPoint(self.center)
-        if cursorShape:
-            self.cursorShape = cursorShape
-        if limitRect:
-            self.limitRect = QtCore.QRectF(limitRect)
+        # self.setAcceptHoverEvents(True)
         self.setCursor(cursorShape)
+
+    # def hoverEnterEvent(self, event):
+    #     self.setCursor(self.cursorShape)
+    #     # QtGui.QApplication.instance().setOverrideCursor(self.cursorShape)
+    #
+    # def hoverLeaveEvent(self, event):
+    #     QtGui.QApplication.instance().restoreOverrideCursor()
 
     def itemChange(self, change, value):
         if change == QtGui.QGraphicsItem.ItemPositionChange:
             # print self.objectName(), '  <-- moved'
             new_value = value.toPointF()
-            self.setCursor(QtCore.Qt.ClosedHandCursor)
+            # self.setCursor(QtCore.Qt.ClosedHandCursor)
 
             if not self.limitRect.contains(new_value):
                 new_value.setX(min(self.limitRect.right(), max(new_value.x(), self.limitRect.left())))
@@ -60,6 +70,33 @@ class myGraphicsSvgItem(QtSvg.QGraphicsSvgItem):
 
         return QtGui.QGraphicsItem.itemChange(self, change, value)
 
+    def mousePressEvent(self, event):
+        # event.accept()
+        pos, item = self.getItemAtMousePos_byMouseEvent(event)
+        print "Press", pos, item.objectName()
+        # print self.parentObject()
+        super(myGraphicsSvgItem, self).mousePressEvent(event)
+
+    def mouseReleaseEvent(self, event):
+        # event.accept()
+        pos, item = self.getItemAtMousePos_byMouseEvent(event)
+        print "Release", pos, item.objectName()
+        super(myGraphicsSvgItem, self).mouseReleaseEvent(event)
+
+    def getWidget(self, name):
+        wdg =  pyChezzApp.findChildren((QtGui.QWidget, QtGui.QFrame), QtCore.QString(name))[0]
+        return wdg
+
+    def getItemAtMousePos_byMouseEvent(self, event):
+        pos = QtCore.QPoint(self.pos().x(), self.pos().y())
+        print pos
+        table =  self.getWidget('interactiveTable')
+        fields =  self.getWidget('grdFields')
+        posGlobal = table.mapToGlobal(pos)
+        posLocal = fields.mapFromGlobal(posGlobal)
+        widget = fields.childAt(pos)
+        print widget, posGlobal, posLocal
+        return pos, widget
 
 class ChessFigure(object):
     def __init__(self, name=None, startField=None):
@@ -172,19 +209,6 @@ class pyChezzWin(QtGui.QWidget, form_class):
     def isGameStarted(self, state):
         self.gameData['gameStarted'] = state
 
-    def figureInfo(self, name='', startField=''):
-        """ Store parameters of a chess figure """
-        infDict = {}
-        infDict['name'] = name
-        infDict['isLight'] = False
-        infDict['isDark'] = False
-        infDict['imageFile'] = ''
-        infDict['startField'] = startField
-        infDict['currentField'] = ''
-        infDict['currentPos'] = QtCore.QPointF()
-        infDict['graphicsItem'] = QtSvg.QGraphicsSvgItem()
-        return infDict
-
     def btnOpen_Clicked(self):
         self.openDataFile()
 
@@ -275,7 +299,7 @@ class pyChezzWin(QtGui.QWidget, form_class):
             self.collectSnapPoints()
             self.enableFigures(self.darkFigures, state=False)
             self.enableFigures(self.lightFigures, state=False)
-            self.interactiveBoardView.setCursor(QtCore.Qt.OpenHandCursor)
+            # self.interactiveBoardView.setCursor(QtCore.Qt.OpenHandCursor)
             self.firstShow = False
             print "Shown!!!"
             # print "view + scene ---> ", self.interactiveBoardView.rect(), self.interactiveBoardView.sceneRect()
@@ -579,6 +603,7 @@ class pyChezzWin(QtGui.QWidget, form_class):
 
 def main():
 
+    global pyChezzApp
     app = QtGui.QApplication(sys.argv)
     if pyChezzWin.__widgetInst__ is None:
         t = pyChezzWin(app=app)
@@ -586,6 +611,7 @@ def main():
     else:
         t = pyChezzWin.__widgetInst__
     t.show()
+    pyChezzApp = t
     sys.exit(app.exec_())
 
 
