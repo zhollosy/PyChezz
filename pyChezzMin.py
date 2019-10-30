@@ -40,14 +40,15 @@ class myGraphicsSvgItem(QtSvg.QGraphicsSvgItem):
                  *args, **kwargs):
         super(myGraphicsSvgItem, self).__init__(parent)
         self.anim_slide = None
+        self.anim_tilt = None
         self.center = self.boundingRect().center()
         self.cursorShape = cursorShape
         self.limitRect = QtCore.QRectF(limitRect)
-        self.setTransformOriginPoint(self.center)
         self.table_widget =  None
         self.fields_widget =  None
         # self.setAcceptHoverEvents(True)
         self.setCursor(cursorShape)
+        self.updateCenter()
 
     # def hoverEnterEvent(self, event):
     #     self.setCursor(self.cursorShape)
@@ -69,25 +70,29 @@ class myGraphicsSvgItem(QtSvg.QGraphicsSvgItem):
                 value = QtCore.QVariant(new_value)
             return QtGui.QGraphicsItem.itemChange(self, change, value)
         if change == QtGui.QGraphicsItem.ItemPositionHasChanged:
-            self.setCursor(self.cursorShape)
+            # self.setCursor(self.cursorShape)
+            pass
 
         return QtGui.QGraphicsItem.itemChange(self, change, value)
 
     def mousePressEvent(self, event):
-        # event.accept()
         print "-----------------"
+        self.setCursor(QtCore.Qt.ClosedHandCursor)
         pos, item = self.getItemAtMousePos_byMouseEvent(event)
         print "Press", pos, item.objectName() if item else None
-        # print self.parentObject()
+        self.anim_do_tilt(True)
         super(myGraphicsSvgItem, self).mousePressEvent(event)
 
     def mouseReleaseEvent(self, event):
-        # event.accept()
         print "-----"
+        self.setCursor(self.cursorShape)
         pos, item = self.getItemAtMousePos_byMouseEvent(event)
         print "Release", pos, item.objectName() if item else None
+
+        self.anim_do_slideTilt(item, False)
+        # self.anim_do_slide(item)
+        # self.anim_do_tilt(False)
         super(myGraphicsSvgItem, self).mouseReleaseEvent(event)
-        self.do_slide_anim(item)
 
     def getWidget(self, name):
         wdg =  pyChezzApp.findChildren((QtGui.QWidget, QtGui.QFrame, QtGui.QSpacerItem), QtCore.QString(name))[0]
@@ -101,14 +106,38 @@ class myGraphicsSvgItem(QtSvg.QGraphicsSvgItem):
         widget = self.fields_widget.childAt(posLocal)
         return posLocal, widget
 
-    def do_slide_anim(self, to_widget):
+    def anim_do_slideTilt(self, to_widget, isTilting):
+        self.anim_group = QtCore.QParallelAnimationGroup()
+        self.anim_do_slide(to_widget)
+        self.anim_do_tilt(isTilting)
+        self.anim_group.addAnimation(self.anim_slide)
+        self.anim_group.addAnimation(self.anim_tilt)
+        self.anim_group.start()
+
+    def anim_do_slide(self, to_widget):
+        if to_widget is None:
+            self.anim_slide = None
+            return
         posGlobal = self.fields_widget.mapToGlobal(to_widget.geometry().center())
         posLocal = self.table_widget.mapFromGlobal(posGlobal)
         self.anim_slide = QPropertyAnimation(self, "pos")
-        self.anim_slide.setDuration(100)
+        self.anim_slide.setDuration(200)
         self.anim_slide.setStartValue(self.pos())
         self.anim_slide.setEndValue(posLocal)
+        self.anim_slide.setEasingCurve(QtCore.QEasingCurve.InOutBack)
         self.anim_slide.start()
+
+    def anim_do_tilt(self, isTilting):
+        self.anim_tilt = QPropertyAnimation(self, "rotation")
+        self.anim_tilt.setDuration(500)
+        self.anim_tilt.setStartValue(0 if isTilting else -30)
+        self.anim_tilt.setEndValue(-30 if isTilting else 0)
+        self.anim_tilt.setEasingCurve(QtCore.QEasingCurve.InOutBack)
+        self.anim_tilt.start()
+
+    def updateCenter(self):
+        self.center = self.boundingRect().center()
+        self.setTransformOriginPoint(self.center)
 
 class ChessFigure(object):
     def __init__(self, name=None, startField=None):
