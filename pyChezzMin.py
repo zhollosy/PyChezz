@@ -38,11 +38,14 @@ class myGraphicsSvgItem(QtSvg.QGraphicsSvgItem):
                  limitRect=QtCore.QRectF(0,0,1000,1000),
                  cursorShape=QtCore.Qt.OpenHandCursor,
                  *args, **kwargs):
-        QtSvg.QGraphicsSvgItem.__init__(self, parent)
+        super(myGraphicsSvgItem, self).__init__(parent)
+        self.anim_slide = None
         self.center = self.boundingRect().center()
         self.cursorShape = cursorShape
         self.limitRect = QtCore.QRectF(limitRect)
         self.setTransformOriginPoint(self.center)
+        self.table_widget =  None
+        self.fields_widget =  None
         # self.setAcceptHoverEvents(True)
         self.setCursor(cursorShape)
 
@@ -72,31 +75,40 @@ class myGraphicsSvgItem(QtSvg.QGraphicsSvgItem):
 
     def mousePressEvent(self, event):
         # event.accept()
+        print "-----------------"
         pos, item = self.getItemAtMousePos_byMouseEvent(event)
-        print "Press", pos, item.objectName()
+        print "Press", pos, item.objectName() if item else None
         # print self.parentObject()
         super(myGraphicsSvgItem, self).mousePressEvent(event)
 
     def mouseReleaseEvent(self, event):
         # event.accept()
+        print "-----"
         pos, item = self.getItemAtMousePos_byMouseEvent(event)
-        print "Release", pos, item.objectName()
+        print "Release", pos, item.objectName() if item else None
         super(myGraphicsSvgItem, self).mouseReleaseEvent(event)
+        self.do_slide_anim(item)
 
     def getWidget(self, name):
-        wdg =  pyChezzApp.findChildren((QtGui.QWidget, QtGui.QFrame), QtCore.QString(name))[0]
+        wdg =  pyChezzApp.findChildren((QtGui.QWidget, QtGui.QFrame, QtGui.QSpacerItem), QtCore.QString(name))[0]
         return wdg
 
     def getItemAtMousePos_byMouseEvent(self, event):
-        pos = QtCore.QPoint(self.pos().x(), self.pos().y())
-        print pos
-        table =  self.getWidget('interactiveTable')
-        fields =  self.getWidget('grdFields')
-        posGlobal = table.mapToGlobal(pos)
-        posLocal = fields.mapFromGlobal(posGlobal)
-        widget = fields.childAt(pos)
-        print widget, posGlobal, posLocal
-        return pos, widget
+        self.table_widget = self.getWidget('interactiveTable')
+        self.fields_widget = self.getWidget('grdFields')
+        posGlobal = self.table_widget.mapToGlobal(self.pos().toPoint())
+        posLocal = self.fields_widget.mapFromGlobal(posGlobal)
+        widget = self.fields_widget.childAt(posLocal)
+        return posLocal, widget
+
+    def do_slide_anim(self, to_widget):
+        posGlobal = self.fields_widget.mapToGlobal(to_widget.geometry().center())
+        posLocal = self.table_widget.mapFromGlobal(posGlobal)
+        self.anim_slide = QPropertyAnimation(self, "pos")
+        self.anim_slide.setDuration(100)
+        self.anim_slide.setStartValue(self.pos())
+        self.anim_slide.setEndValue(posLocal)
+        self.anim_slide.start()
 
 class ChessFigure(object):
     def __init__(self, name=None, startField=None):
