@@ -1,0 +1,1 @@
+..\venv27\Lib\site-packages\PyQt4\uic\pyuic.py pyChezzMinUI.ui -o pyChezzUI_qt4.py
