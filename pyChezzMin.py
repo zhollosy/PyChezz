@@ -74,7 +74,7 @@ class myGraphicsSvgItem(QtSvg.QGraphicsSvgItem):
         self.setCursor(QtCore.Qt.ClosedHandCursor)
         pos, item = self.getItemAtMousePos_byMouseEvent(event)
         print "Press", pos, item.objectName() if item else None
-        self.doAanim_tilt(True)
+        self.doAanim_tilt(False)
         super(myGraphicsSvgItem, self).mousePressEvent(event)
 
     def mouseReleaseEvent(self, event):
@@ -83,7 +83,7 @@ class myGraphicsSvgItem(QtSvg.QGraphicsSvgItem):
         pos, item = self.getItemAtMousePos_byMouseEvent(event)
         print "Release", pos, item.objectName() if item else None
 
-        self.doAnim_slideTilt(item, False)
+        self.doAnim_slideTiltFade(item, doTilting=True)
         # self.anim_do_slide(item)
         # self.anim_do_tilt(False)
         super(myGraphicsSvgItem, self).mouseReleaseEvent(event)
@@ -108,15 +108,16 @@ class myGraphicsSvgItem(QtSvg.QGraphicsSvgItem):
         wdg = self.getWidgetAtTablePos(pos.toPoint())
         self.doAnim_slide(wdg, duration)
 
-    def doAnim_slideTiltFade(self, to_widget, isTilting=False, isBecomeVisible=True):
+    def doAnim_slideTiltFade(self, to_widget, doTilting=False, isBecomeVisible=False, duration=400):
         self.anim_group = QtCore.QParallelAnimationGroup()
-        self.doAnim_slide(to_widget)
-        self.doAanim_tilt(isTilting)
-        self.doAanim_fade(isBecomeVisible)
+        self.doAnim_slide(to_widget, duration=duration, doStart=False)
         self.anim_group.addAnimation(self.anim_slide)
-        if isTilting:
+        if doTilting:
+            isTilted = abs(self.rotation())>1.0
+            self.doAanim_tilt(isTilted, duration=duration, doStart=False)
             self.anim_group.addAnimation(self.anim_tilt)
         if isBecomeVisible:
+            self.doAanim_fade(isBecomeVisible, duration=duration, doStart=False)
             self.anim_group.addAnimation(self.anim_fade)
         self.anim_group.start()
 
@@ -134,16 +135,16 @@ class myGraphicsSvgItem(QtSvg.QGraphicsSvgItem):
         if doStart:
             self.anim_slide.start()
 
-    def doAanim_tilt(self, isTilting, duration=500, doStart=True):
+    def doAanim_tilt(self, isTilted, duration=400, doStart=True):
         self.anim_tilt = QPropertyAnimation(self, "rotation")
         self.anim_tilt.setDuration(duration)
-        self.anim_tilt.setStartValue(0 if isTilting else -30)
-        self.anim_tilt.setEndValue(-30 if isTilting else 0)
+        self.anim_tilt.setStartValue(-30 if isTilted else 0)
+        self.anim_tilt.setEndValue(0 if isTilted else -30)
         self.anim_tilt.setEasingCurve(QtCore.QEasingCurve.InOutBack)
         if doStart:
             self.anim_tilt.start()
 
-    def doAanim_fade(self, isBecomeVisible, duration=500, doStart=True):
+    def doAanim_fade(self, isBecomeVisible, duration=400, doStart=True):
         self.anim_fade = QPropertyAnimation(self, "opacity")
         self.anim_fade.setDuration(duration)
         self.anim_fade.setStartValue(0.0 if isBecomeVisible else 1.0)
@@ -166,9 +167,15 @@ class myGraphicsSvgItem(QtSvg.QGraphicsSvgItem):
                                   self.boundingRect().center(),
                                   self.transformOriginPoint())
 
-class ChessFigure(object):
-    def __init__(self, name=None, startField=None):
-        super(ChessFigure, self).__init__()
+class ChessFigure(myGraphicsSvgItem):
+    def __init__(self, *args, **kwargs):
+
+        name =          kwargs.get('name',            None)
+        parent =        kwargs.get('parent',          None)
+        startField =    kwargs.pop('startField',      None)
+        limitRect =     kwargs.get('limitRect',       QtCore.QRectF(0, 0, 1000, 1000))
+        cursorShape =   kwargs.get('cursorShape',     QtCore.Qt.OpenHandCursor)
+        super(ChessFigure, self).__init__(*args, **kwargs)
 
         self.name = name
         self.isLight = False
@@ -177,7 +184,6 @@ class ChessFigure(object):
         self.startField = startField
         self.currentField = ''
         self.currentPos = QtCore.QPointF()
-        self.graphicsItem = QtSvg.QGraphicsSvgItem()
 
 
 class pyChezzWin(QtGui.QWidget, form_class):
@@ -199,38 +205,6 @@ class pyChezzWin(QtGui.QWidget, form_class):
             self.snapPoints = []
             self.icons = {}
             self.figures = {}
-            self.darkFigures = {"darkKing": ChessFigure(name='darkKing', startField='E8'),
-                                "darkQueen": ChessFigure(name='darkQueen', startField='D8'),
-                                "darkBishop1": ChessFigure(name='darkBishop1', startField='C8'),
-                                "darkBishop2": ChessFigure(name='darkBishop2', startField='F8'),
-                                "darkKnight1": ChessFigure(name='darkKnight1', startField='B8'),
-                                "darkKnight2": ChessFigure(name='darkKnight2', startField='G8'),
-                                "darkRook1": ChessFigure(name='darkRook1', startField='A8'),
-                                "darkRook2": ChessFigure(name='darkRook2', startField='H8'),
-                                "darkPawn1": ChessFigure(name='darkPawn1', startField='A7'),
-                                "darkPawn2": ChessFigure(name='darkPawn2', startField='B7'),
-                                "darkPawn3": ChessFigure(name='darkPawn3', startField='C7'),
-                                "darkPawn4": ChessFigure(name='darkPawn4', startField='D7'),
-                                "darkPawn5": ChessFigure(name='darkPawn5', startField='E7'),
-                                "darkPawn6": ChessFigure(name='darkPawn6', startField='F7'),
-                                "darkPawn7": ChessFigure(name='darkPawn7', startField='G7'),
-                                "darkPawn8": ChessFigure(name='darkPawn8', startField='H7')}
-            self.lightFigures = {"lightKing": ChessFigure(name='lightKing', startField='E1'),
-                                 "lightQueen": ChessFigure(name='lightQueen', startField='D1'),
-                                 "lightBishop1": ChessFigure(name='lightBishop1', startField='C1'),
-                                 "lightBishop2": ChessFigure(name='lightBishop2', startField='F1'),
-                                 "lightKnight1": ChessFigure(name='lightKnight1', startField='B1'),
-                                 "lightKnight2": ChessFigure(name='lightKnight2', startField='G1'),
-                                 "lightRook1": ChessFigure(name='lightRook1', startField='A1'),
-                                 "lightRook2": ChessFigure(name='lightRook2', startField='H1'),
-                                 "lightPawn1": ChessFigure(name='lightPawn1', startField='A2'),
-                                 "lightPawn2": ChessFigure(name='lightPawn2', startField='B2'),
-                                 "lightPawn3": ChessFigure(name='lightPawn3', startField='C2'),
-                                 "lightPawn4": ChessFigure(name='lightPawn4', startField='D2'),
-                                 "lightPawn5": ChessFigure(name='lightPawn5', startField='E2'),
-                                 "lightPawn6": ChessFigure(name='lightPawn6', startField='F2'),
-                                 "lightPawn7": ChessFigure(name='lightPawn7', startField='G2'),
-                                 "lightPawn8": ChessFigure(name='lightPawn8', startField='H2')}
 
             # Connections
             QtCore.QObject.connect(self.verticalSlider, QtCore.SIGNAL("valueChanged(int)"), self.valueHandlerSlider)
@@ -475,45 +449,52 @@ class pyChezzWin(QtGui.QWidget, form_class):
         print  'Users: ', self.gameData['users']
 
 
+    def getFiguresByColor(self, color='light'):
+        return {k:v for k, v in self.figures.iteritems() if color in v.name}
+
+    def getFiguresByAttribute(self, attr='name', value='light'):
+        return {k:v for k, v in self.figures.iteritems() if color in eval('v.{}'.format(name))}
+
     def drawFigures(self):
         imagesPath = os.path.dirname(__file__) + "/images/"
         limitRect = self.interactiveBoardView.frameRect()
 
-        self.figures["darkKing"] = myGraphicsSvgItem(imagesPath + "kdt.svg", limitRect=limitRect,    name="darkKing")
-        self.figures["darkQueen"] = myGraphicsSvgItem(imagesPath + "qdt.svg", limitRect=limitRect,   name="darkQueen")
-        self.figures["darkBishop1"] = myGraphicsSvgItem(imagesPath + "bdt.svg", limitRect=limitRect, name="darkBishop1")
-        self.figures["darkBishop2"] = myGraphicsSvgItem(imagesPath + "bdt.svg", limitRect=limitRect, name="darkBishop2")
-        self.figures["darkKnight1"] = myGraphicsSvgItem(imagesPath + "ndt.svg", limitRect=limitRect, name="darkKnight1")
-        self.figures["darkKnight2"] = myGraphicsSvgItem(imagesPath + "ndt.svg", limitRect=limitRect, name="darkKnight2")
-        self.figures["darkRook1"] = myGraphicsSvgItem(imagesPath + "rdt.svg", limitRect=limitRect,   name="darkRook1")
-        self.figures["darkRook2"] = myGraphicsSvgItem(imagesPath + "rdt.svg", limitRect=limitRect,   name="darkRook2")
-        self.figures["darkPawn1"] = myGraphicsSvgItem(imagesPath + "pdt.svg", limitRect=limitRect,   name="darkPawn1")
-        self.figures["darkPawn1"] = myGraphicsSvgItem(imagesPath + "pdt.svg", limitRect=limitRect,   name="darkPawn1")
-        self.figures["darkPawn2"] = myGraphicsSvgItem(imagesPath + "pdt.svg", limitRect=limitRect,   name="darkPawn2")
-        self.figures["darkPawn3"] = myGraphicsSvgItem(imagesPath + "pdt.svg", limitRect=limitRect,   name="darkPawn3")
-        self.figures["darkPawn4"] = myGraphicsSvgItem(imagesPath + "pdt.svg", limitRect=limitRect,   name="darkPawn4")
-        self.figures["darkPawn5"] = myGraphicsSvgItem(imagesPath + "pdt.svg", limitRect=limitRect,   name="darkPawn5")
-        self.figures["darkPawn6"] = myGraphicsSvgItem(imagesPath + "pdt.svg", limitRect=limitRect,   name="darkPawn6")
-        self.figures["darkPawn7"] = myGraphicsSvgItem(imagesPath + "pdt.svg", limitRect=limitRect,   name="darkPawn7")
-        self.figures["darkPawn8"] = myGraphicsSvgItem(imagesPath + "pdt.svg", limitRect=limitRect,   name="darkPawn8")
+        self.darkFigures = {"darkKing": ChessFigure(imagesPath + "kdt.svg",     limitRect=limitRect,    name='darkKing',    startField='E8'),
+                            "darkQueen": ChessFigure(imagesPath + "qdt.svg",    limitRect=limitRect,    name='darkQueen',   startField='D8'),
+                            "darkBishop1": ChessFigure(imagesPath + "bdt.svg",  limitRect=limitRect,    name='darkBishop1', startField='C8'),
+                            "darkBishop2": ChessFigure(imagesPath + "bdt.svg",  limitRect=limitRect,    name='darkBishop2', startField='F8'),
+                            "darkKnight1": ChessFigure(imagesPath + "ndt.svg",  limitRect=limitRect,    name='darkKnight1', startField='B8'),
+                            "darkKnight2": ChessFigure(imagesPath + "ndt.svg",  limitRect=limitRect,    name='darkKnight2', startField='G8'),
+                            "darkRook1": ChessFigure(imagesPath + "rdt.svg",    limitRect=limitRect,    name='darkRook1',   startField='A8'),
+                            "darkRook2": ChessFigure(imagesPath + "rdt.svg",    limitRect=limitRect,    name='darkRook2',   startField='H8'),
+                            "darkPawn1": ChessFigure(imagesPath + "pdt.svg",    limitRect=limitRect,    name='darkPawn1',   startField='A7'),
+                            "darkPawn2": ChessFigure(imagesPath + "pdt.svg",    limitRect=limitRect,    name='darkPawn2',   startField='B7'),
+                            "darkPawn3": ChessFigure(imagesPath + "pdt.svg",    limitRect=limitRect,    name='darkPawn3',   startField='C7'),
+                            "darkPawn4": ChessFigure(imagesPath + "pdt.svg",    limitRect=limitRect,    name='darkPawn4',   startField='D7'),
+                            "darkPawn5": ChessFigure(imagesPath + "pdt.svg",    limitRect=limitRect,    name='darkPawn5',   startField='E7'),
+                            "darkPawn6": ChessFigure(imagesPath + "pdt.svg",    limitRect=limitRect,    name='darkPawn6',   startField='F7'),
+                            "darkPawn7": ChessFigure(imagesPath + "pdt.svg",    limitRect=limitRect,    name='darkPawn7',   startField='G7'),
+                            "darkPawn8": ChessFigure(imagesPath + "pdt.svg",    limitRect=limitRect,    name='darkPawn8',   startField='H7')}
+        self.lightFigures = {"lightKing": ChessFigure(imagesPath + "klt.svg",       limitRect=limitRect, name='lightKing', startField='E1'),
+                             "lightQueen": ChessFigure(imagesPath + "qlt.svg",      limitRect=limitRect, name='lightQueen', startField='D1'),
+                             "lightBishop1": ChessFigure(imagesPath + "blt.svg",    limitRect=limitRect, name='lightBishop1', startField='C1'),
+                             "lightBishop2": ChessFigure(imagesPath + "blt.svg",    limitRect=limitRect, name='lightBishop2', startField='F1'),
+                             "lightKnight1": ChessFigure(imagesPath + "nlt.svg",    limitRect=limitRect, name='lightKnight1', startField='B1'),
+                             "lightKnight2": ChessFigure(imagesPath + "nlt.svg",    limitRect=limitRect, name='lightKnight2', startField='G1'),
+                             "lightRook1": ChessFigure(imagesPath + "rlt.svg",      limitRect=limitRect, name='lightRook1', startField='A1'),
+                             "lightRook2": ChessFigure(imagesPath + "rlt.svg",      limitRect=limitRect, name='lightRook2', startField='H1'),
+                             "lightPawn1": ChessFigure(imagesPath + "plt.svg",      limitRect=limitRect, name='lightPawn1', startField='A2'),
+                             "lightPawn2": ChessFigure(imagesPath + "plt.svg",      limitRect=limitRect, name='lightPawn2', startField='B2'),
+                             "lightPawn3": ChessFigure(imagesPath + "plt.svg",      limitRect=limitRect, name='lightPawn3', startField='C2'),
+                             "lightPawn4": ChessFigure(imagesPath + "plt.svg",      limitRect=limitRect, name='lightPawn4', startField='D2'),
+                             "lightPawn5": ChessFigure(imagesPath + "plt.svg",      limitRect=limitRect, name='lightPawn5', startField='E2'),
+                             "lightPawn6": ChessFigure(imagesPath + "plt.svg",      limitRect=limitRect, name='lightPawn6', startField='F2'),
+                             "lightPawn7": ChessFigure(imagesPath + "plt.svg",      limitRect=limitRect, name='lightPawn7', startField='G2'),
+                             "lightPawn8": ChessFigure(imagesPath + "plt.svg",      limitRect=limitRect, name='lightPawn8', startField='H2')}
 
-        self.figures["lightKing"] = myGraphicsSvgItem(imagesPath + "klt.svg", limitRect=limitRect,    name="lightKing")
-        self.figures["lightQueen"] = myGraphicsSvgItem(imagesPath + "qlt.svg", limitRect=limitRect,   name="lightQueen")
-        self.figures["lightBishop1"] = myGraphicsSvgItem(imagesPath + "blt.svg", limitRect=limitRect, name="lightBishop1")
-        self.figures["lightBishop2"] = myGraphicsSvgItem(imagesPath + "blt.svg", limitRect=limitRect, name="lightBishop2")
-        self.figures["lightKnight1"] = myGraphicsSvgItem(imagesPath + "nlt.svg", limitRect=limitRect, name="lightKnight1")
-        self.figures["lightKnight2"] = myGraphicsSvgItem(imagesPath + "nlt.svg", limitRect=limitRect, name="lightKnight2")
-        self.figures["lightRook1"] = myGraphicsSvgItem(imagesPath + "rlt.svg", limitRect=limitRect,   name="lightRook1")
-        self.figures["lightRook2"] = myGraphicsSvgItem(imagesPath + "rlt.svg", limitRect=limitRect,   name="lightRook2")
-        self.figures["lightPawn1"] = myGraphicsSvgItem(imagesPath + "plt.svg", limitRect=limitRect,   name="lightPawn1")
-        self.figures["lightPawn1"] = myGraphicsSvgItem(imagesPath + "plt.svg", limitRect=limitRect,   name="lightPawn1")
-        self.figures["lightPawn2"] = myGraphicsSvgItem(imagesPath + "plt.svg", limitRect=limitRect,   name="lightPawn2")
-        self.figures["lightPawn3"] = myGraphicsSvgItem(imagesPath + "plt.svg", limitRect=limitRect,   name="lightPawn3")
-        self.figures["lightPawn4"] = myGraphicsSvgItem(imagesPath + "plt.svg", limitRect=limitRect,   name="lightPawn4")
-        self.figures["lightPawn5"] = myGraphicsSvgItem(imagesPath + "plt.svg", limitRect=limitRect,   name="lightPawn5")
-        self.figures["lightPawn6"] = myGraphicsSvgItem(imagesPath + "plt.svg", limitRect=limitRect,   name="lightPawn6")
-        self.figures["lightPawn7"] = myGraphicsSvgItem(imagesPath + "plt.svg", limitRect=limitRect,   name="lightPawn7")
-        self.figures["lightPawn8"] = myGraphicsSvgItem(imagesPath + "plt.svg", limitRect=limitRect,   name="lightPawn8")
+        self.figures = {}
+        self.figures.update(self.darkFigures)
+        self.figures.update(self.lightFigures)
 
         for key, fig in self.figures.iteritems():
             fig.setFlag(QtGui.QGraphicsItem.ItemIsMovable, True)
@@ -527,6 +508,7 @@ class pyChezzWin(QtGui.QWidget, form_class):
 
         # place figures to initial pos
         for fig, figInf in self.darkFigures.iteritems():
+            print  fig, figInf.startField
             self.moveFigureToField(fig, figInf.startField)
             figInf.currentField = figInf.startField
         for fig, figInf in self.lightFigures.iteritems():
@@ -585,11 +567,11 @@ class pyChezzWin(QtGui.QWidget, form_class):
         fld = self.fields[fldName]
         if fig.pos()==QtCore.QPoint(0,0):
             board_geo = self.interactiveBoardView.geometry()
-            rnd_x = random()*(board_geo.width()-40)  + 20
-            rnd_y = random()*(board_geo.height()-40) + 20
+            rnd_x = random()*(board_geo.width()-10)  + 5
+            rnd_y = board_geo.height() / 2.0
             fig.setPos(rnd_x, rnd_y)
         rnd = random() * rndSpeed
-        fig.doAnim_slide(fld, duration=400 + rnd)
+        fig.doAnim_slideTiltFade(fld, duration=400+rnd)
 
     def moveFigureToPos(self, figName, pos, rndSpeed=600):
         fig = self.figures[figName]
