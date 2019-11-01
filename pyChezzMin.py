@@ -7,6 +7,7 @@ import os
 import json
 import getpass
 from time import gmtime, strftime
+from random import random
 from PyQt4 import QtGui, QtCore, QtSvg, uic
 from PyQt4.QtCore import QPropertyAnimation
 
@@ -37,31 +38,25 @@ class myGraphicsSvgItem(QtSvg.QGraphicsSvgItem):
                  parent=None,
                  limitRect=QtCore.QRectF(0,0,1000,1000),
                  cursorShape=QtCore.Qt.OpenHandCursor,
+                 name=None,
                  *args, **kwargs):
-        super(myGraphicsSvgItem, self).__init__(parent)
+        super(myGraphicsSvgItem, self).__init__(parent, *args,**kwargs)
         self.anim_slide = None
         self.anim_tilt = None
+        self.anim_fade = None
         self.center = self.boundingRect().center()
         self.cursorShape = cursorShape
         self.limitRect = QtCore.QRectF(limitRect)
-        self.table_widget =  None
-        self.fields_widget =  None
-        # self.setAcceptHoverEvents(True)
+        self.table_widget = self.getWidget('interactiveTable')
+        self.fields_widget = self.getWidget('grdFields')
+        # self.fields_widget = self.parentWidget()
         self.setCursor(cursorShape)
+        self.setObjectName(name)
         self.updateCenter()
-
-    # def hoverEnterEvent(self, event):
-    #     self.setCursor(self.cursorShape)
-    #     # QtGui.QApplication.instance().setOverrideCursor(self.cursorShape)
-    #
-    # def hoverLeaveEvent(self, event):
-    #     QtGui.QApplication.instance().restoreOverrideCursor()
 
     def itemChange(self, change, value):
         if change == QtGui.QGraphicsItem.ItemPositionChange:
-            # print self.objectName(), '  <-- moved'
             new_value = value.toPointF()
-            # self.setCursor(QtCore.Qt.ClosedHandCursor)
 
             if not self.limitRect.contains(new_value):
                 new_value.setX(min(self.limitRect.right(), max(new_value.x(), self.limitRect.left())))
@@ -70,7 +65,6 @@ class myGraphicsSvgItem(QtSvg.QGraphicsSvgItem):
                 value = QtCore.QVariant(new_value)
             return QtGui.QGraphicsItem.itemChange(self, change, value)
         if change == QtGui.QGraphicsItem.ItemPositionHasChanged:
-            # self.setCursor(self.cursorShape)
             pass
 
         return QtGui.QGraphicsItem.itemChange(self, change, value)
@@ -80,7 +74,7 @@ class myGraphicsSvgItem(QtSvg.QGraphicsSvgItem):
         self.setCursor(QtCore.Qt.ClosedHandCursor)
         pos, item = self.getItemAtMousePos_byMouseEvent(event)
         print "Press", pos, item.objectName() if item else None
-        self.anim_do_tilt(True)
+        self.doAanim_tilt(True)
         super(myGraphicsSvgItem, self).mousePressEvent(event)
 
     def mouseReleaseEvent(self, event):
@@ -89,7 +83,7 @@ class myGraphicsSvgItem(QtSvg.QGraphicsSvgItem):
         pos, item = self.getItemAtMousePos_byMouseEvent(event)
         print "Release", pos, item.objectName() if item else None
 
-        self.anim_do_slideTilt(item, False)
+        self.doAnim_slideTilt(item, False)
         # self.anim_do_slide(item)
         # self.anim_do_tilt(False)
         super(myGraphicsSvgItem, self).mouseReleaseEvent(event)
@@ -99,45 +93,78 @@ class myGraphicsSvgItem(QtSvg.QGraphicsSvgItem):
         return wdg
 
     def getItemAtMousePos_byMouseEvent(self, event):
-        self.table_widget = self.getWidget('interactiveTable')
-        self.fields_widget = self.getWidget('grdFields')
         posGlobal = self.table_widget.mapToGlobal(self.pos().toPoint())
         posLocal = self.fields_widget.mapFromGlobal(posGlobal)
         widget = self.fields_widget.childAt(posLocal)
         return posLocal, widget
 
-    def anim_do_slideTilt(self, to_widget, isTilting):
+    def getWidgetAtTablePos(self, pos):
+        posGlobal = self.table_widget.mapToGlobal(pos)
+        posLocal = self.fields_widget.mapFromGlobal(posGlobal)
+        widget = self.fields_widget.childAt(posLocal)
+        return widget
+
+    def move_to_pos(self, pos, duration=200):
+        wdg = self.getWidgetAtTablePos(pos.toPoint())
+        self.doAnim_slide(wdg, duration)
+
+    def doAnim_slideTiltFade(self, to_widget, isTilting=False, isBecomeVisible=True):
         self.anim_group = QtCore.QParallelAnimationGroup()
-        self.anim_do_slide(to_widget)
-        self.anim_do_tilt(isTilting)
+        self.doAnim_slide(to_widget)
+        self.doAanim_tilt(isTilting)
+        self.doAanim_fade(isBecomeVisible)
         self.anim_group.addAnimation(self.anim_slide)
-        self.anim_group.addAnimation(self.anim_tilt)
+        if isTilting:
+            self.anim_group.addAnimation(self.anim_tilt)
+        if isBecomeVisible:
+            self.anim_group.addAnimation(self.anim_fade)
         self.anim_group.start()
 
-    def anim_do_slide(self, to_widget):
+    def doAnim_slide(self, to_widget, duration=200, doStart=True):
         if to_widget is None:
             self.anim_slide = None
             return
         posGlobal = self.fields_widget.mapToGlobal(to_widget.geometry().center())
         posLocal = self.table_widget.mapFromGlobal(posGlobal)
         self.anim_slide = QPropertyAnimation(self, "pos")
-        self.anim_slide.setDuration(200)
+        self.anim_slide.setDuration(duration)
         self.anim_slide.setStartValue(self.pos())
         self.anim_slide.setEndValue(posLocal)
-        self.anim_slide.setEasingCurve(QtCore.QEasingCurve.InOutBack)
-        self.anim_slide.start()
+        self.anim_slide.setEasingCurve(QtCore.QEasingCurve.OutBack)
+        if doStart:
+            self.anim_slide.start()
 
-    def anim_do_tilt(self, isTilting):
+    def doAanim_tilt(self, isTilting, duration=500, doStart=True):
         self.anim_tilt = QPropertyAnimation(self, "rotation")
-        self.anim_tilt.setDuration(500)
+        self.anim_tilt.setDuration(duration)
         self.anim_tilt.setStartValue(0 if isTilting else -30)
         self.anim_tilt.setEndValue(-30 if isTilting else 0)
         self.anim_tilt.setEasingCurve(QtCore.QEasingCurve.InOutBack)
-        self.anim_tilt.start()
+        if doStart:
+            self.anim_tilt.start()
+
+    def doAanim_fade(self, isBecomeVisible, duration=500, doStart=True):
+        self.anim_fade = QPropertyAnimation(self, "opacity")
+        self.anim_fade.setDuration(duration)
+        self.anim_fade.setStartValue(0.0 if isBecomeVisible else 1.0)
+        self.anim_fade.setEndValue(1.0 if isBecomeVisible else 0.0)
+        if doStart:
+            self.anim_fade.start()
+
 
     def updateCenter(self):
         self.center = self.boundingRect().center()
         self.setTransformOriginPoint(self.center)
+        print '________\n' \
+              'Name: {},\n' \
+              'Pos: {},\n' \
+              'Bound: {},\n' \
+              'Center: {}\n' \
+              'Origin: {}'.format(self.objectName(),
+                                  self.pos(),
+                                  self.boundingRect(),
+                                  self.boundingRect().center(),
+                                  self.transformOriginPoint())
 
 class ChessFigure(object):
     def __init__(self, name=None, startField=None):
@@ -165,7 +192,6 @@ class pyChezzWin(QtGui.QWidget, form_class):
             self.interactiveBoardView = QtGui.QGraphicsView(self)
             self.scene = QtGui.QGraphicsScene(self.interactiveBoardView)
 
-            self.firstShow = True
             self.baseViewRect = QtCore.QRect()
 
             # figures, icons and fields
@@ -212,7 +238,6 @@ class pyChezzWin(QtGui.QWidget, form_class):
             QtCore.QObject.connect(self.btnSave, QtCore.SIGNAL("clicked()"), self.btnSave_Clicked)
             QtCore.QObject.connect(self.scene, QtCore.SIGNAL("clicked()"), self.btnOpen_Clicked)
             # self.resizeEvent = self.alignTable
-            self.showEvent = self.initOnFirstShow
 
             # game
             self.myLogFile = ''
@@ -224,6 +249,23 @@ class pyChezzWin(QtGui.QWidget, form_class):
             self.whoAmI = ''
             self.isGameStarted = False
             self.gameData['users'] = {'OPPONENT': 'dark'}
+
+    def show(self):
+        super(pyChezzWin, self).show()
+        self.setFixedSize(self.size())
+        self.frmIndicatorYOU.hide()
+        self.initializeBoard()
+        self.alignTable(self)
+        self.drawFigures()
+        self.drawIcons()
+        self.baseViewRect = self.interactiveBoardView.geometry()
+        self.collectSnapPoints()
+        self.enableFigures(self.darkFigures, state=False)
+        self.enableFigures(self.lightFigures, state=False)
+        # self.interactiveBoardView.setCursor(QtCore.Qt.OpenHandCursor)
+        print "Shown!!!"
+        # print "view + scene ---> ", self.interactiveBoardView.rect(), self.interactiveBoardView.sceneRect()
+        self.setAnimations()
 
     @property
     def whoAmI(self):
@@ -328,26 +370,8 @@ class pyChezzWin(QtGui.QWidget, form_class):
 
         # self.interactiveBoardView.fitInView(QtCore.QRectF(0, 0, targetRect.width(), targetRect.height()))
 
-    def initOnFirstShow(self, null):
-        if self.firstShow:
-            self.setFixedSize(self.size())
-            self.frmIndicatorYOU.hide()
-            self.initializeBoard()
-            self.alignTable(self)
-            self.drawFigures()
-            self.drawIcons()
-            self.baseViewRect = self.interactiveBoardView.geometry()
-            self.collectSnapPoints()
-            self.enableFigures(self.darkFigures, state=False)
-            self.enableFigures(self.lightFigures, state=False)
-            # self.interactiveBoardView.setCursor(QtCore.Qt.OpenHandCursor)
-            self.firstShow = False
-            print "Shown!!!"
-            # print "view + scene ---> ", self.interactiveBoardView.rect(), self.interactiveBoardView.sceneRect()
-            self.setAnimations()
-
     def initializeBoard(self):
-        self.interactiveBoardView.setRenderHint(QtGui.QPainter.Antialiasing)
+        self.interactiveBoardView.setRenderHints(QtGui.QPainter.Antialiasing | QtGui.QPainter.SmoothPixmapTransform)
         self.interactiveBoardView.setStyleSheet("background-color: transparent;")
         self.interactiveBoardView.setFrameShape(QtGui.QFrame.NoFrame)
         self.interactiveBoardView.setObjectName("interactiveTable")
@@ -370,9 +394,9 @@ class pyChezzWin(QtGui.QWidget, form_class):
 
         # collecting field widgets from UI file
         for row in range(1, 9):
-            for col in ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H']:
+            for col in 'ABCDEFGH':
                 fld = eval('self.field%s%s' % (col, row))
-                self.fields['%s%s' % (col, row)] = fld   # self.fields['A1'] = self.fieldA1
+                self.fields['{}{}'.format(col, row)] = fld   # self.fields['A1'] = self.fieldA1
 
     def startNewGame(self):
         if self.saveChezzMinData():
@@ -411,6 +435,7 @@ class pyChezzWin(QtGui.QWidget, form_class):
 
         if self.myFigColor.find('light') == 0:
             self.interactiveBoardView.rotate(180)
+            # self.grdFields.rotate(180)
             # self.anim_rotateBoard.start()
 
             pos = QtCore.QPointF(boardRect.width()/2 + goIconRect.width()/2, boardRect.height()/2 - 60)
@@ -454,49 +479,49 @@ class pyChezzWin(QtGui.QWidget, form_class):
         imagesPath = os.path.dirname(__file__) + "/images/"
         limitRect = self.interactiveBoardView.frameRect()
 
-        self.figures["darkKing"] = myGraphicsSvgItem(imagesPath + "kdt.svg", limitRect=limitRect)
-        self.figures["darkQueen"] = myGraphicsSvgItem(imagesPath + "qdt.svg", limitRect=limitRect)
-        self.figures["darkBishop1"] = myGraphicsSvgItem(imagesPath + "bdt.svg", limitRect=limitRect)
-        self.figures["darkBishop2"] = myGraphicsSvgItem(imagesPath + "bdt.svg", limitRect=limitRect)
-        self.figures["darkKnight1"] = myGraphicsSvgItem(imagesPath + "ndt.svg", limitRect=limitRect)
-        self.figures["darkKnight2"] = myGraphicsSvgItem(imagesPath + "ndt.svg", limitRect=limitRect)
-        self.figures["darkRook1"] = myGraphicsSvgItem(imagesPath + "rdt.svg", limitRect=limitRect)
-        self.figures["darkRook2"] = myGraphicsSvgItem(imagesPath + "rdt.svg", limitRect=limitRect)
-        self.figures["darkPawn1"] = myGraphicsSvgItem(imagesPath + "pdt.svg", limitRect=limitRect)
-        self.figures["darkPawn1"] = myGraphicsSvgItem(imagesPath + "pdt.svg", limitRect=limitRect)
-        self.figures["darkPawn2"] = myGraphicsSvgItem(imagesPath + "pdt.svg", limitRect=limitRect)
-        self.figures["darkPawn3"] = myGraphicsSvgItem(imagesPath + "pdt.svg", limitRect=limitRect)
-        self.figures["darkPawn4"] = myGraphicsSvgItem(imagesPath + "pdt.svg", limitRect=limitRect)
-        self.figures["darkPawn5"] = myGraphicsSvgItem(imagesPath + "pdt.svg", limitRect=limitRect)
-        self.figures["darkPawn6"] = myGraphicsSvgItem(imagesPath + "pdt.svg", limitRect=limitRect)
-        self.figures["darkPawn7"] = myGraphicsSvgItem(imagesPath + "pdt.svg", limitRect=limitRect)
-        self.figures["darkPawn8"] = myGraphicsSvgItem(imagesPath + "pdt.svg", limitRect=limitRect)
+        self.figures["darkKing"] = myGraphicsSvgItem(imagesPath + "kdt.svg", limitRect=limitRect,    name="darkKing")
+        self.figures["darkQueen"] = myGraphicsSvgItem(imagesPath + "qdt.svg", limitRect=limitRect,   name="darkQueen")
+        self.figures["darkBishop1"] = myGraphicsSvgItem(imagesPath + "bdt.svg", limitRect=limitRect, name="darkBishop1")
+        self.figures["darkBishop2"] = myGraphicsSvgItem(imagesPath + "bdt.svg", limitRect=limitRect, name="darkBishop2")
+        self.figures["darkKnight1"] = myGraphicsSvgItem(imagesPath + "ndt.svg", limitRect=limitRect, name="darkKnight1")
+        self.figures["darkKnight2"] = myGraphicsSvgItem(imagesPath + "ndt.svg", limitRect=limitRect, name="darkKnight2")
+        self.figures["darkRook1"] = myGraphicsSvgItem(imagesPath + "rdt.svg", limitRect=limitRect,   name="darkRook1")
+        self.figures["darkRook2"] = myGraphicsSvgItem(imagesPath + "rdt.svg", limitRect=limitRect,   name="darkRook2")
+        self.figures["darkPawn1"] = myGraphicsSvgItem(imagesPath + "pdt.svg", limitRect=limitRect,   name="darkPawn1")
+        self.figures["darkPawn1"] = myGraphicsSvgItem(imagesPath + "pdt.svg", limitRect=limitRect,   name="darkPawn1")
+        self.figures["darkPawn2"] = myGraphicsSvgItem(imagesPath + "pdt.svg", limitRect=limitRect,   name="darkPawn2")
+        self.figures["darkPawn3"] = myGraphicsSvgItem(imagesPath + "pdt.svg", limitRect=limitRect,   name="darkPawn3")
+        self.figures["darkPawn4"] = myGraphicsSvgItem(imagesPath + "pdt.svg", limitRect=limitRect,   name="darkPawn4")
+        self.figures["darkPawn5"] = myGraphicsSvgItem(imagesPath + "pdt.svg", limitRect=limitRect,   name="darkPawn5")
+        self.figures["darkPawn6"] = myGraphicsSvgItem(imagesPath + "pdt.svg", limitRect=limitRect,   name="darkPawn6")
+        self.figures["darkPawn7"] = myGraphicsSvgItem(imagesPath + "pdt.svg", limitRect=limitRect,   name="darkPawn7")
+        self.figures["darkPawn8"] = myGraphicsSvgItem(imagesPath + "pdt.svg", limitRect=limitRect,   name="darkPawn8")
 
-        self.figures["lightKing"] = myGraphicsSvgItem(imagesPath + "klt.svg", limitRect=limitRect)
-        self.figures["lightQueen"] = myGraphicsSvgItem(imagesPath + "qlt.svg", limitRect=limitRect)
-        self.figures["lightBishop1"] = myGraphicsSvgItem(imagesPath + "blt.svg", limitRect=limitRect)
-        self.figures["lightBishop2"] = myGraphicsSvgItem(imagesPath + "blt.svg", limitRect=limitRect)
-        self.figures["lightKnight1"] = myGraphicsSvgItem(imagesPath + "nlt.svg", limitRect=limitRect)
-        self.figures["lightKnight2"] = myGraphicsSvgItem(imagesPath + "nlt.svg", limitRect=limitRect)
-        self.figures["lightRook1"] = myGraphicsSvgItem(imagesPath + "rlt.svg", limitRect=limitRect)
-        self.figures["lightRook2"] = myGraphicsSvgItem(imagesPath + "rlt.svg", limitRect=limitRect)
-        self.figures["lightPawn1"] = myGraphicsSvgItem(imagesPath + "plt.svg", limitRect=limitRect)
-        self.figures["lightPawn1"] = myGraphicsSvgItem(imagesPath + "plt.svg", limitRect=limitRect)
-        self.figures["lightPawn2"] = myGraphicsSvgItem(imagesPath + "plt.svg", limitRect=limitRect)
-        self.figures["lightPawn3"] = myGraphicsSvgItem(imagesPath + "plt.svg", limitRect=limitRect)
-        self.figures["lightPawn4"] = myGraphicsSvgItem(imagesPath + "plt.svg", limitRect=limitRect)
-        self.figures["lightPawn5"] = myGraphicsSvgItem(imagesPath + "plt.svg", limitRect=limitRect)
-        self.figures["lightPawn6"] = myGraphicsSvgItem(imagesPath + "plt.svg", limitRect=limitRect)
-        self.figures["lightPawn7"] = myGraphicsSvgItem(imagesPath + "plt.svg", limitRect=limitRect)
-        self.figures["lightPawn8"] = myGraphicsSvgItem(imagesPath + "plt.svg", limitRect=limitRect)
+        self.figures["lightKing"] = myGraphicsSvgItem(imagesPath + "klt.svg", limitRect=limitRect,    name="lightKing")
+        self.figures["lightQueen"] = myGraphicsSvgItem(imagesPath + "qlt.svg", limitRect=limitRect,   name="lightQueen")
+        self.figures["lightBishop1"] = myGraphicsSvgItem(imagesPath + "blt.svg", limitRect=limitRect, name="lightBishop1")
+        self.figures["lightBishop2"] = myGraphicsSvgItem(imagesPath + "blt.svg", limitRect=limitRect, name="lightBishop2")
+        self.figures["lightKnight1"] = myGraphicsSvgItem(imagesPath + "nlt.svg", limitRect=limitRect, name="lightKnight1")
+        self.figures["lightKnight2"] = myGraphicsSvgItem(imagesPath + "nlt.svg", limitRect=limitRect, name="lightKnight2")
+        self.figures["lightRook1"] = myGraphicsSvgItem(imagesPath + "rlt.svg", limitRect=limitRect,   name="lightRook1")
+        self.figures["lightRook2"] = myGraphicsSvgItem(imagesPath + "rlt.svg", limitRect=limitRect,   name="lightRook2")
+        self.figures["lightPawn1"] = myGraphicsSvgItem(imagesPath + "plt.svg", limitRect=limitRect,   name="lightPawn1")
+        self.figures["lightPawn1"] = myGraphicsSvgItem(imagesPath + "plt.svg", limitRect=limitRect,   name="lightPawn1")
+        self.figures["lightPawn2"] = myGraphicsSvgItem(imagesPath + "plt.svg", limitRect=limitRect,   name="lightPawn2")
+        self.figures["lightPawn3"] = myGraphicsSvgItem(imagesPath + "plt.svg", limitRect=limitRect,   name="lightPawn3")
+        self.figures["lightPawn4"] = myGraphicsSvgItem(imagesPath + "plt.svg", limitRect=limitRect,   name="lightPawn4")
+        self.figures["lightPawn5"] = myGraphicsSvgItem(imagesPath + "plt.svg", limitRect=limitRect,   name="lightPawn5")
+        self.figures["lightPawn6"] = myGraphicsSvgItem(imagesPath + "plt.svg", limitRect=limitRect,   name="lightPawn6")
+        self.figures["lightPawn7"] = myGraphicsSvgItem(imagesPath + "plt.svg", limitRect=limitRect,   name="lightPawn7")
+        self.figures["lightPawn8"] = myGraphicsSvgItem(imagesPath + "plt.svg", limitRect=limitRect,   name="lightPawn8")
 
         for key, fig in self.figures.iteritems():
             fig.setFlag(QtGui.QGraphicsItem.ItemIsMovable, True)
             fig.setFlag(QtGui.QGraphicsItem.ItemIsSelectable, True)
             fig.setFlag(QtGui.QGraphicsItem.ItemSendsGeometryChanges, True)
             fig.setTransformOriginPoint(-fig.boundingRect().width()-4, -fig.boundingRect().height()-4)
+            # fig.updateCenter()
             fig.setScale(0.7)
-            # fig.setScale(-0.7)
             fig.setObjectName(key)
             self.scene.addItem(fig)
 
@@ -514,15 +539,17 @@ class pyChezzWin(QtGui.QWidget, form_class):
         limitRect = self.interactiveBoardView.frameRect()
 
         # rotateIcon
-        self.icons["rotateIcon"] = myGraphicsSvgItem(imagesPath + "rotate_square.svg", cursorShape=QtCore.Qt.PointingHandCursor)
-        self.icons["rotateIcon"].setObjectName('rotateIcon')
+        self.icons["rotateIcon"] = myGraphicsSvgItem(imagesPath + "rotate_square.svg",
+                                                     cursorShape=QtCore.Qt.PointingHandCursor,
+                                                     name="rotateIcon")
         self.scene.addItem(self.icons["rotateIcon"])
         iconRect = self.icons["rotateIcon"].boundingRect()
         self.icons["rotateIcon"].setPos(QtCore.QPointF(limitRect.bottomRight()/2) - iconRect.bottomRight()/2)
 
         # goIcon
-        self.icons["goIcon"] = myGraphicsSvgItem(imagesPath + "GO.svg", cursorShape=QtCore.Qt.PointingHandCursor)
-        self.icons["goIcon"].setObjectName('goIcon')
+        self.icons["goIcon"] = myGraphicsSvgItem(imagesPath + "GO.svg",
+                                                 cursorShape=QtCore.Qt.PointingHandCursor,
+                                                 name="goIcon")
         self.scene.addItem(self.icons["goIcon"])
         iconRect = self.icons["goIcon"].boundingRect()
         self.icons["goIcon"].setPos(QtCore.QPointF(limitRect.width()/2 - iconRect.width()/2, limitRect.height()/2+60))
@@ -553,15 +580,21 @@ class pyChezzWin(QtGui.QWidget, form_class):
     def removeIcon(self, iconName):
         pass
 
-    def moveFigureToField(self, figName, fldName):
+    def moveFigureToField(self, figName, fldName, rndSpeed=400):
         fig = self.figures[figName]
-        fldCoordGlobal = self.getFieldCenter(fldName)
-        fldCoordLocal = self.interactiveBoardView.mapFromGlobal(fldCoordGlobal)
-        fig.setPos(QtCore.QPointF(fldCoordLocal))
+        fld = self.fields[fldName]
+        if fig.pos()==QtCore.QPoint(0,0):
+            board_geo = self.interactiveBoardView.geometry()
+            rnd_x = random()*(board_geo.width()-40)  + 20
+            rnd_y = random()*(board_geo.height()-40) + 20
+            fig.setPos(rnd_x, rnd_y)
+        rnd = random() * rndSpeed
+        fig.doAnim_slide(fld, duration=400 + rnd)
 
-    def moveFigureToPos(self, figName, pos):
+    def moveFigureToPos(self, figName, pos, rndSpeed=600):
         fig = self.figures[figName]
-        fig.setPos(pos)
+        rnd = random() * rndSpeed
+        fig.move_to_pos(pos, duration=1200+rnd)
 
     def getFieldCenter(self, fldName):
         fld = self.fields[fldName]
@@ -647,12 +680,11 @@ def main():
     global pyChezzApp
     app = QtGui.QApplication(sys.argv)
     if pyChezzWin.__widgetInst__ is None:
-        t = pyChezzWin(app=app)
-        t.setWindowIcon(QtGui.QIcon(os.path.dirname(__file__) + "/images/pyChezz.svg"))
+        pyChezzApp = pyChezzWin(app=app)
+        pyChezzApp.setWindowIcon(QtGui.QIcon(os.path.dirname(__file__) + "/images/pyChezz.svg"))
     else:
-        t = pyChezzWin.__widgetInst__
-    t.show()
-    pyChezzApp = t
+        pyChezzApp = pyChezzWin.__widgetInst__
+    pyChezzApp.show()
     sys.exit(app.exec_())
 
 

@@ -1,0 +1,1 @@
+venv36\Lib\site-packages\PyQt5\uic\pyuic.py ui\pyChezzMinUI.ui -o ui\pyChezzUI_qt5.py
