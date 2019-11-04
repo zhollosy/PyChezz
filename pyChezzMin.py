@@ -131,26 +131,30 @@ class myGraphicsSvgItem(QtSvg.QGraphicsSvgItem):
         self.anim_slide.setDuration(duration)
         self.anim_slide.setStartValue(self.pos())
         self.anim_slide.setEndValue(posLocal)
-        self.anim_slide.setEasingCurve(QtCore.QEasingCurve.OutBack)
+        self.anim_slide.setEasingCurve(QtCore.QEasingCurve.InOutQuint)
         if doStart:
             self.anim_slide.start()
+        return self.anim_slide
 
     def doAanim_tilt(self, isTilted, duration=400, doStart=True):
         self.anim_tilt = QPropertyAnimation(self, "rotation")
         self.anim_tilt.setDuration(duration)
         self.anim_tilt.setStartValue(-30 if isTilted else 0)
         self.anim_tilt.setEndValue(0 if isTilted else -30)
-        self.anim_tilt.setEasingCurve(QtCore.QEasingCurve.InOutBack)
+        self.anim_tilt.setEasingCurve(QtCore.QEasingCurve.OutBack)
         if doStart:
             self.anim_tilt.start()
+        return self.anim_tilt
 
     def doAanim_fade(self, isBecomeVisible, duration=400, doStart=True):
         self.anim_fade = QPropertyAnimation(self, "opacity")
         self.anim_fade.setDuration(duration)
         self.anim_fade.setStartValue(0.0 if isBecomeVisible else 1.0)
         self.anim_fade.setEndValue(1.0 if isBecomeVisible else 0.0)
+        self.anim_fade.setEasingCurve(QtCore.QEasingCurve.InCirc)
         if doStart:
             self.anim_fade.start()
+        return self.anim_fade
 
 
     def updateCenter(self):
@@ -448,10 +452,6 @@ class pyChezzWin(QtGui.QWidget, form_class):
             (self.gameData['users'].values()[1], self.gameData['users'].values()[0])
         print  'Users: ', self.gameData['users']
 
-
-    def getFiguresByColor(self, color='light'):
-        return {k:v for k, v in self.figures.iteritems() if color in v.name}
-
     def getFiguresByAttribute(self, attr='name', value='light'):
         return {k:v for k, v in self.figures.iteritems() if color in eval('v.{}'.format(name))}
 
@@ -565,13 +565,15 @@ class pyChezzWin(QtGui.QWidget, form_class):
     def moveFigureToField(self, figName, fldName, rndSpeed=400):
         fig = self.figures[figName]
         fld = self.fields[fldName]
+        rnd = random() * rndSpeed
         if fig.pos()==QtCore.QPoint(0,0):
             board_geo = self.interactiveBoardView.geometry()
             rnd_x = random()*(board_geo.width()-10)  + 5
             rnd_y = board_geo.height() / 2.0
             fig.setPos(rnd_x, rnd_y)
-        rnd = random() * rndSpeed
-        fig.doAnim_slideTiltFade(fld, duration=400+rnd)
+            fig.doAnim_slideTiltFade(fld, isBecomeVisible=True, duration=2000+rnd)
+        else:
+            fig.doAnim_slideTiltFade(fld, duration=400+rnd)
 
     def moveFigureToPos(self, figName, pos, rndSpeed=600):
         fig = self.figures[figName]
