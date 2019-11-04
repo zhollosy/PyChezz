@@ -189,6 +189,25 @@ class ChessFigure(myGraphicsSvgItem):
         self.currentField = ''
         self.currentPos = QtCore.QPointF()
 
+class GameTable(object):
+    def __init__(self):
+        self.fields = []
+        self.backgroundImage = None
+        self.rotation = [0, 2]
+
+    def rotateTable(self, rotation_enumerator, rotation_nominator):
+        """ Rotate game table by 1/4 or 1/2... 1/5
+        :param rotation_enumerator: enum / nomin
+        :param rotation_nominator: enum / nomin
+        :return:
+        """
+        pass
+
+    def addField(self, qt_obj, name):
+        pass
+
+    def getField(self, field_name):
+        pass
 
 class pyChezzWin(QtGui.QWidget, form_class):
     """ GUI class for chess using minimal number of widgets, no AI, on intuitive surface """
@@ -237,7 +256,6 @@ class pyChezzWin(QtGui.QWidget, form_class):
         self.drawFigures()
         self.drawIcons()
         self.baseViewRect = self.interactiveBoardView.geometry()
-        self.collectSnapPoints()
         self.enableFigures(self.darkFigures, state=False)
         self.enableFigures(self.lightFigures, state=False)
         # self.interactiveBoardView.setCursor(QtCore.Qt.OpenHandCursor)
