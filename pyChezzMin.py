@@ -555,6 +555,7 @@ class pyChezzWin(QtGui.QWidget, form_class):
         for fig in figures:
             self.figures[fig].setFlag(QtGui.QGraphicsItem.ItemIsSelectable, state)
             self.figures[fig].setFlag(QtGui.QGraphicsItem.ItemIsMovable, state)
+            self.figures[fig].setAcceptedMouseButtons(QtCore.Qt.LeftButton if state else QtCore.Qt.NoButton)
 
     def placeIcon(self, iconName, iconPos):
         pass
